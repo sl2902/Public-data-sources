@@ -1,0 +1,206 @@
+---
+title: "PMJDY_Consolidated"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r echo = FALSE, warning = FALSE, message= FALSE, Libraries}
+library(ggplot2)
+library(reshape2)
+library(scales)
+library(plyr)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Set_Path}
+setwd('E:/open_source')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Read_File}
+df <- read.csv('pmjdy_consolidated.csv', stringsAsFactors = FALSE)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Change_DateType}
+df$Period <- as.Date(df$Period, '%d-%m-%Y', origin="2016-01-01")
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Overall_Bal}
+ggplot(df, aes(x=Period, y=Overall_Bal)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+#  scale_y_continuous() +
+#  ylim(0, 2000) +
+#  coord_trans(y='log10') +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Average balance per account (Rs) - Rural and Urban')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Total_Accounts}
+ggplot(df, aes(x=Period, y=No.of.Accounts)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+#  scale_y_continuous() +
+#  ylim(0, 2000) +
+#  coord_trans(y='log10') +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+              labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Total number of accounts - Rural and Urban')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Aadhaar_Seed_Count}
+ggplot(df, aes(x=Period, y=Aadhaar.Seeding)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of Aadhaar seeds - Rural and Urban')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Rupay_Debit_Count}
+ggplot(df, aes(x=Period, y=No.of.Rupay.Debit.Card)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of Rupay debit cards disbursed - Rural and Urban')
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Zero_Balance}
+ggplot(df, aes(x=Period, y=No.of.Accounts.with.Zero.Balance)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of zero balance accounts - Rural and Urban')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Time_Series_Total_Balance}
+ggplot(df, aes(x=Period, y=Balance.in.Accounts..In.Crore.)) +
+  geom_line(aes(color = Bank.Type)) +
+  scale_x_date(labels = date_format('%b')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Total balance (Crore) - Rural and Urban') +
+  labs(title = 'Log distribution of total balance (Crores) by bank type')
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Melt_Location}
+melt_acc <- melt(df, id.vars=c('Period', 'Bank.Type'),
+               measure.vars = c('Rural', 'Urban'),
+               variable.name = 'Location'
+              )
+```
+
+``` {r echo = FALSE, warning = FALSE, message = FALSE, facet_num_acc}
+p <- ggplot(melt_acc, aes(x=Period, y=value)) +
+  geom_line(aes(color = Bank.Type)) + 
+  scale_x_date(labels = date_format('%b'),
+               breaks = date_breaks('1 month')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of accounts') +
+  labs(title = 'Log count of number of accounts by location and bank type')
+p +  facet_grid(. ~ Location)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Melt_Balance}
+melt_bal <- melt(df, id.vars = c('Period', 'Bank.Type'),
+                 measure.vars = c('Bal_Rural', 'Bal_Urban'),
+                 variable.name = 'Location'
+                )
+melt_bal$Location <- gsub('Bal_Rural', 'Rural', melt_bal$Location)
+melt_bal$Location <- gsub('Bal_Urban', 'Urban', melt_bal$Location)
+```
+
+``` {r echo = FALSE, warning = FALSE, message = FALSE, facet_bal}
+p <- ggplot(melt_bal, aes(x=Period, y=value)) +
+  geom_line(aes(color = Bank.Type)) + 
+  scale_x_date(labels = date_format('%b'),
+               breaks = date_breaks('1 month')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Balance in (Crore)') +
+  labs(title = 'Log distributed Balance in (Crores) by location and bank type')
+p +  facet_grid(. ~ Location)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Melt_Aadhaar}
+melt_seed <- melt(df, id.vars = c('Period', 'Bank.Type'),
+                 measure.vars = c('No_AaadhaarSeeds_Rural',     
+                                  'No_AaadhaarSeeds_Urban'),
+                 variable.name = 'Location'
+                )
+melt_seed$Location <- gsub('No_AaadhaarSeeds_Rural', 'Rural', melt_seed$Location)
+melt_seed$Location <- gsub('No_AaadhaarSeeds_Urban', 'Urban', melt_seed$Location)
+```
+
+``` {r echo = FALSE, warning = FALSE, message = FALSE, facet_num_Aadhaar}
+p <- ggplot(melt_seed, aes(x=Period, y=value)) +
+  geom_line(aes(color = Bank.Type)) + 
+  scale_x_date(labels = date_format('%b'),
+               breaks = date_breaks('1 month')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of Aadhaar seeds') +
+  labs(title = 'Log count of Aadhaar seeded accounts by location and bank type')
+p +  facet_grid(. ~ Location)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Melt_Rupay}
+melt_rupay <- melt(df, id.vars = c('Period', 'Bank.Type'),
+                 measure.vars = c('No_RupayDebit_Rural',     
+                                  'No_RupayDebit_Urban'),
+                 variable.name = 'Location'
+                )
+melt_rupay$Location <- gsub('No_RupayDebit_Rural', 'Rural', melt_rupay$Location)
+melt_rupay$Location <- gsub('No_RupayDebit_Urban', 'Urban', melt_rupay$Location)
+```
+
+``` {r echo = FALSE, warning = FALSE, message = FALSE, facet_num_rupay}
+p <- ggplot(melt_rupay, aes(x=Period, y=value)) +
+  geom_line(aes(color = Bank.Type)) + 
+  scale_x_date(labels = date_format('%b'),
+               breaks = date_breaks('1 month')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of Rupay Debt cards') +
+  labs(title = 'Count of Rupay debt cards by location and bank type')
+p +  facet_grid(. ~ Location)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, Melt_ZeroBal}
+melt_zero <- melt(df, id.vars = c('Period', 'Bank.Type'),
+                 measure.vars = c('No_AccZeroBal_Rural',     
+                                  'No_AccZeroBal_Urban'),
+                 variable.name = 'Location'
+                )
+melt_zero$Location <- gsub('No_AccZeroBal_Rural', 'Rural', melt_zero$Location)
+melt_zero$Location <- gsub('No_AccZeroBal_Urban', 'Urban', melt_zero$Location)
+```
+
+``` {r echo = FALSE, warning = FALSE, message = FALSE, facet_num_zero}
+p <- ggplot(melt_zero, aes(x=Period, y=value)) +
+  geom_line(aes(color = Bank.Type)) + 
+  scale_x_date(labels = date_format('%b'),
+               breaks = date_breaks('1 month')) +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab('Reporting period') +
+  ylab('Count of zero balance accounts') +
+  labs(title = 'Comparison of the count of zero balance accounts by location of bank account and type of bank')
+p +  facet_grid(. ~ Location)
+```
